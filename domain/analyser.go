@@ -1,7 +1,7 @@
 package domain
 
 type AnalyserRequest struct {
-	Url []string `json:"url"`
+	Url string `json:"url"`
 }
 
 type AnalysisResult struct {
@@ -9,7 +9,6 @@ type AnalysisResult struct {
 	Title        string         `json:"title"`
 	Headings     map[string]int `json:"headings"`
 	Link         Link           `json:"link"`
-	Inaccessible int            `json:"inaccessible_links"`
 	HasLoginForm bool           `json:"has_login_form"`
 }
 

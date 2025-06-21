@@ -23,9 +23,6 @@ type outBoundConnection struct {
 func (o outBoundConnection) Get(ctx context.Context, url string) (*http.Response, error) {
 	client := connectionClient.HttpClientDefault
 	resp, err := client.Get(url)
-	if resp != nil && resp.Body != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return nil, err
 	}

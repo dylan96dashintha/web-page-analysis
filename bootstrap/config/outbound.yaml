@@ -1,2 +1,2 @@
-dial_timeout: 2000
-remote_timeout: 2000
+dial_timeout: 3000
+remote_timeout: 3000

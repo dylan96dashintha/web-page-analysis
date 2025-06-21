@@ -29,7 +29,7 @@ func main() {
 	ctr := container.Resolver(ctx, conf)
 
 	// server start
-	server.InitRouter(ctx, conf, ctr)
+	server.InitRouter(ctx, conf, *ctr)
 
 	<-ctx.Done()
 }

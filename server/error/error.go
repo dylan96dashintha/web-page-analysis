@@ -33,3 +33,22 @@ func BadRequestError(developerMessage string, w http.ResponseWriter) {
 	w.WriteHeader(http.StatusBadRequest)
 	w.Write(data)
 }
+
+func GeneralError(message, developerMessage string, code int64, w http.ResponseWriter) {
+
+	errorMessage := Msg{
+		Message:          message,
+		DeveloperMessage: developerMessage,
+		Code:             code,
+	}
+
+	errMsg := ErrorMsg{Error: errorMessage}
+	data, err := json.Marshal(errMsg)
+	if err != nil {
+		log.Errorf("ERROR in marshalling message, err: %+v", err)
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusInternalServerError)
+	w.Write(data)
+}

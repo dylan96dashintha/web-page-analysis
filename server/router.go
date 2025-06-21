@@ -21,9 +21,9 @@ func InitRouter(ctx context.Context, conf bootstrap.Config, ctr container.Contai
 	server := &http.Server{
 		Addr: fmt.Sprintf("%v:%v", "0.0.0.0", conf.AppConfig.Port),
 		// Good practice to set timeouts to avoid Slowloris attacks.
-		WriteTimeout: time.Second * 35,
-		ReadTimeout:  time.Second * 35,
-		IdleTimeout:  time.Second * 60,
+		WriteTimeout: time.Second * 350,
+		ReadTimeout:  time.Second * 350,
+		IdleTimeout:  time.Second * 600,
 		Handler:      r,
 	}
 	go func() {

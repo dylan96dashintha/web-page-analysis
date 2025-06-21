@@ -36,6 +36,19 @@ func (a Analyser) Analyse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	analyser := service.NewAnalyser(a.container)
-	analyser.WebAnalyser(ctx, analyserRequest)
-	log.Println(analyserRequest)
+	result, err := analyser.WebAnalyser(ctx, analyserRequest)
+	if err != nil {
+		erro.GeneralError(fmt.Sprintf("err: %+v",
+			err), "error in analysing", http.StatusInternalServerError, w)
+		return
+	}
+	raw, err := json.Marshal(result)
+	if err != nil {
+		erro.GeneralError(fmt.Sprintf("err: %+v",
+			err), "error in marshalling response", http.StatusInternalServerError, w)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Write(raw)
+	return
 }

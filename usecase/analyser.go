@@ -7,6 +7,7 @@ import (
 	"github.com/web-page-analysis/container"
 	"github.com/web-page-analysis/domain"
 	"strings"
+	"sync"
 )
 
 const (
@@ -14,6 +15,7 @@ const (
 )
 
 type Analyser interface {
+	CheckHtmlVersion(ctx context.Context, rawHtml string) string
 	GetTitle(ctx context.Context, doc *goquery.Document) string
 	CountHeading(ctx context.Context, doc *goquery.Document) map[string]int
 	CountLinks(ctx context.Context, doc *goquery.Document, url string) domain.Link
@@ -22,6 +24,27 @@ type Analyser interface {
 
 type analyser struct {
 	ctr container.Container
+}
+
+func (a analyser) CheckHtmlVersion(ctx context.Context, rawHTML string) string {
+	rawHTML = strings.ToLower(rawHTML)
+
+	switch {
+	case strings.Contains(rawHTML, `<!doctype html>`):
+		return "HTML5"
+	case strings.Contains(rawHTML, `<!doctype html public "-//w3c//dtd html 4.01 transitional//en"`):
+		return "HTML 4.01 Transitional"
+	case strings.Contains(rawHTML, `<!doctype html public "-//w3c//dtd html 4.01 strict//en"`):
+		return "HTML 4.01 Strict"
+	case strings.Contains(rawHTML, `<!doctype html public "-//w3c//dtd xhtml 1.0 strict//en"`):
+		return "XHTML 1.0 Strict"
+	case strings.Contains(rawHTML, `<!doctype html public "-//w3c//dtd xhtml 1.0 transitional//en"`):
+		return "XHTML 1.0 Transitional"
+	case strings.Contains(rawHTML, `<!doctype html public "-//w3c//dtd html 3.2 final//en"`):
+		return "HTML 3.2"
+	default:
+		return "Unknown or missing doctype"
+	}
 }
 
 func (a analyser) CheckAnyLogin(ctx context.Context, doc *goquery.Document) bool {
@@ -52,38 +75,135 @@ func (a analyser) CountHeading(ctx context.Context, doc *goquery.Document) map[s
 	return headingsMap
 }
 
-func (a analyser) CountLinks(ctx context.Context, doc *goquery.Document, url string) domain.Link {
-	// Links analysis
-	var link domain.Link
-	doc.Find("a").Each(func(i int, s *goquery.Selection) {
-		href, isExist := s.Attr("href")
-		if isExist {
-			if strings.HasPrefix(href, "http") {
-				if strings.HasPrefix(href, url) {
-					link.InternalLinks++
-				} else {
-					link.ExternalLinks++
-				}
-			} else {
-				link.InternalLinks++
-				if strings.HasPrefix(href, "/") {
-					href = normalizeURL(url) + href
-				} else {
-					href = url + href
-				}
-			}
-			// Check the link status
-			resp, err := a.ctr.OBAdapter.Get(ctx, href)
-			if err == nil {
-				defer resp.Body.Close()
-			}
-			if err != nil || resp != nil && (resp.StatusCode > 300 || resp.StatusCode < 200) {
-				link.InaccessibleLinkCount++
-				link.InaccessibleLink = append(link.InaccessibleLink, href)
-			}
-		}
+//func (a analyser) CountLinks(ctx context.Context, doc *goquery.Document, url string) domain.Link {
+//	// Links analysis
+//	var (
+//		link         domain.Link
+//		linkMu       sync.Mutex
+//		linkJobs     = make(chan string)
+//		wg           sync.WaitGroup
+//		workerCount  = 100
+//		distinctLink = make(map[string]interface{})
+//	)
+//	doc.Find("a").Each(func(i int, s *goquery.Selection) {
+//		href, isExist := s.Attr("href")
+//		if isExist && !strings.HasPrefix(href, "#") {
+//			_, ok := distinctLink[href]
+//			if !ok {
+//				distinctLink[href] = nil
+//				if strings.HasPrefix(href, "http") {
+//					if strings.HasPrefix(href, url) {
+//						link.InternalLinks++
+//					} else {
+//						link.ExternalLinks++
+//					}
+//					link.InaccessibleLink = append(link.InaccessibleLink, href)
+//				} else {
+//					link.InternalLinks++
+//					if strings.HasPrefix(href, "/") {
+//						href = normalizeURL(url) + href
+//					} else {
+//						href = url + href
+//					}
+//					//link.InaccessibleLink = append(link.InaccessibleLink, href)
+//				}
+//
+//			}
+//			linkJobs <- href
+//		}
+//
+//	})
+//
+//	// Start worker pool
+//	for i := 0; i < workerCount; i++ {
+//		wg.Add(1)
+//		go func() {
+//			defer wg.Done()
+//			for href := range linkJobs {
+//				// Check link accessibility
+//				resp, err := a.ctr.OBAdapter.Get(ctx, href)
+//				if err == nil {
+//					if resp != nil && resp.Body != nil {
+//						defer resp.Body.Close()
+//					}
+//				}
+//				if err != nil || resp != nil && (resp.StatusCode > 300 || resp.StatusCode < 200) {
+//					linkMu.Lock()
+//					link.InaccessibleLinkCount++
+//					link.InaccessibleLink = append(link.InaccessibleLink, href)
+//					linkMu.Unlock()
+//				}
+//
+//			}
+//		}()
+//	}
+//	close(linkJobs)
+//	wg.Wait()
+//	return link
+//}
 
+func (a analyser) CountLinks(ctx context.Context, doc *goquery.Document, baseURL string) domain.Link {
+	var (
+		link        domain.Link
+		linkMu      sync.Mutex
+		linkJobs    = make(chan string)
+		wg          sync.WaitGroup
+		workerCount = 200
+	)
+
+	link.InaccessibleLink = make([]string, 0)
+	// Normalize base URL once
+	baseURL = normalizeURL(baseURL)
+
+	// Start worker pool
+	for i := 0; i < workerCount; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for href := range linkJobs {
+				var inaccessible bool
+				fullURL := resolveURL(baseURL, href)
+
+				// Check link accessibility
+				resp, err := a.ctr.OBAdapter.Get(ctx, fullURL)
+				if resp != nil && resp.Body != nil {
+					defer resp.Body.Close()
+				}
+
+				if err != nil || resp != nil && (resp.StatusCode > 300 || resp.StatusCode < 200) {
+					inaccessible = true
+				}
+
+				linkMu.Lock()
+				if strings.HasPrefix(href, "http") {
+					if strings.HasPrefix(href, baseURL) {
+						link.InternalLinks++
+					} else {
+						link.ExternalLinks++
+					}
+				} else {
+					link.InternalLinks++
+				}
+				if inaccessible {
+					link.InaccessibleLinkCount++
+					link.InaccessibleLink = append(link.InaccessibleLink, fullURL)
+				}
+				linkMu.Unlock()
+			}
+		}()
+	}
+
+	// Collect jobs
+	doc.Find("a").Each(func(i int, s *goquery.Selection) {
+		href, exists := s.Attr("href")
+		if !exists || strings.HasPrefix(href, "#") {
+			return
+		}
+		linkJobs <- href
 	})
+
+	close(linkJobs)
+	wg.Wait()
 	return link
 }
 
@@ -92,7 +212,16 @@ func NewAnalyser(ctr container.Container) Analyser {
 		ctr: ctr,
 	}
 }
+func normalizeURL(url string) string {
+	return strings.TrimSuffix(url, "/")
+}
 
-func normalizeURL(u string) string {
-	return strings.TrimSuffix(u, "/")
+func resolveURL(base, href string) string {
+	if strings.HasPrefix(href, "http") {
+		return href
+	}
+	if strings.HasPrefix(href, "/") {
+		return base + href
+	}
+	return base + "/" + href
 }

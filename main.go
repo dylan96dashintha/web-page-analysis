@@ -30,6 +30,5 @@ func main() {
 
 	// server start
 	server.InitRouter(ctx, conf, *ctr)
-
 	<-ctx.Done()
 }

@@ -17,7 +17,6 @@ func InitRouter(ctx context.Context, conf bootstrap.Config, ctr container.Contai
 
 	analyserObj := endpoint.NewAnalyser(ctr)
 	r.HandleFunc("/analyse", analyserObj.Analyse).Methods(http.MethodPost)
-
 	server := &http.Server{
 		Addr: fmt.Sprintf("%v:%v", "0.0.0.0", conf.AppConfig.Port),
 		// Good practice to set timeouts to avoid Slowloris attacks.

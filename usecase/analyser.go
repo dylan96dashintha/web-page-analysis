@@ -32,15 +32,11 @@ func (a analyser) CheckHtmlVersion(ctx context.Context, rawHTML string) string {
 	switch {
 	case strings.Contains(rawHTML, `<!doctype html>`):
 		return "HTML5"
-	case strings.Contains(rawHTML, `<!doctype html public "-//w3c//dtd html 4.01 transitional//en"`):
-		return "HTML 4.01 Transitional"
-	case strings.Contains(rawHTML, `<!doctype html public "-//w3c//dtd html 4.01 strict//en"`):
-		return "HTML 4.01 Strict"
-	case strings.Contains(rawHTML, `<!doctype html public "-//w3c//dtd xhtml 1.0 strict//en"`):
-		return "XHTML 1.0 Strict"
-	case strings.Contains(rawHTML, `<!doctype html public "-//w3c//dtd xhtml 1.0 transitional//en"`):
-		return "XHTML 1.0 Transitional"
-	case strings.Contains(rawHTML, `<!doctype html public "-//w3c//dtd html 3.2 final//en"`):
+	case strings.Contains(rawHTML, `<!doctype html public "-//w3c//dtd html 4.01"`):
+		return "HTML 4.01"
+	case strings.Contains(rawHTML, `<!doctype html public "-//w3c//dtd xhtml 1.0"`):
+		return "XHTML 1.0"
+	case strings.Contains(rawHTML, `<!doctype html public "-//w3c//dtd html 3.2"`):
 		return "HTML 3.2"
 	default:
 		return "Unknown or missing doctype"
@@ -75,73 +71,6 @@ func (a analyser) CountHeading(ctx context.Context, doc *goquery.Document) map[s
 	return headingsMap
 }
 
-//func (a analyser) CountLinks(ctx context.Context, doc *goquery.Document, url string) domain.Link {
-//	// Links analysis
-//	var (
-//		link         domain.Link
-//		linkMu       sync.Mutex
-//		linkJobs     = make(chan string)
-//		wg           sync.WaitGroup
-//		workerCount  = 100
-//		distinctLink = make(map[string]interface{})
-//	)
-//	doc.Find("a").Each(func(i int, s *goquery.Selection) {
-//		href, isExist := s.Attr("href")
-//		if isExist && !strings.HasPrefix(href, "#") {
-//			_, ok := distinctLink[href]
-//			if !ok {
-//				distinctLink[href] = nil
-//				if strings.HasPrefix(href, "http") {
-//					if strings.HasPrefix(href, url) {
-//						link.InternalLinks++
-//					} else {
-//						link.ExternalLinks++
-//					}
-//					link.InaccessibleLink = append(link.InaccessibleLink, href)
-//				} else {
-//					link.InternalLinks++
-//					if strings.HasPrefix(href, "/") {
-//						href = normalizeURL(url) + href
-//					} else {
-//						href = url + href
-//					}
-//					//link.InaccessibleLink = append(link.InaccessibleLink, href)
-//				}
-//
-//			}
-//			linkJobs <- href
-//		}
-//
-//	})
-//
-//	// Start worker pool
-//	for i := 0; i < workerCount; i++ {
-//		wg.Add(1)
-//		go func() {
-//			defer wg.Done()
-//			for href := range linkJobs {
-//				// Check link accessibility
-//				resp, err := a.ctr.OBAdapter.Get(ctx, href)
-//				if err == nil {
-//					if resp != nil && resp.Body != nil {
-//						defer resp.Body.Close()
-//					}
-//				}
-//				if err != nil || resp != nil && (resp.StatusCode > 300 || resp.StatusCode < 200) {
-//					linkMu.Lock()
-//					link.InaccessibleLinkCount++
-//					link.InaccessibleLink = append(link.InaccessibleLink, href)
-//					linkMu.Unlock()
-//				}
-//
-//			}
-//		}()
-//	}
-//	close(linkJobs)
-//	wg.Wait()
-//	return link
-//}
-
 func (a analyser) CountLinks(ctx context.Context, doc *goquery.Document, baseURL string) domain.Link {
 	var (
 		link        domain.Link
@@ -152,7 +81,7 @@ func (a analyser) CountLinks(ctx context.Context, doc *goquery.Document, baseURL
 	)
 
 	link.InaccessibleLink = make([]string, 0)
-	// Normalize base URL once
+
 	baseURL = normalizeURL(baseURL)
 
 	// Start worker pool

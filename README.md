@@ -30,46 +30,50 @@ Standard Go libraries
 These dependencies will be installed automatically via go mod tidy
 
 ## Getting Started
-### 1.Clone the repo
+
+#### 1.Clone the repo
 ```bash
 git clone https://github.com/dylan96dashintha/web-page-analysis.git
 ```
 
-### 2. Navigate to the Project Directory
+#### 2. Navigate to the Project Directory
 ```bash
 cd web-page-analysis
 ```
 
-### 3. Build the Docker image
+#### 3. Build the Docker image
 ```bash
 docker build -t analysis-img -f Dockerfile .
 ```
 
-### 4. Run the docker container
+#### 4. Run the docker container
 ```bash
 docker run -d -p 8080:8080 --name web-analysis-container analysis-img
 ```
 
-### 5. Open the Frontend
+#### 5. Open the Frontend
 open the index.html (static/index.html) file in your browser manually.
 
 ## Main Assumptions
-### Internal/External Link Classification
+
+#### Internal/External Link Classification
 If a link's hostname differs from the base URL, it is considered external; otherwise, it's internal.
 
-### Accessibility Check
+#### Accessibility Check
 The system sends HTTP requests to each link. If no errors occur (e.g., timeouts, unreachable hosts) and the status code is within the 200–299 range, the link is considered accessible.
 
-### Duplicate Removal
+#### Duplicate Removal
 Duplicate links are ignored to prevent redundant processing.
 
 ## Challenges & Solutions
+
 High number of links increases API response latency - Implemented a worker pool to parallelize accessibility checks
 Some URLs take too long to respond - Applied TCP timeouts for outbound HTTP requests
 CORS errors when calling the backend from browser - Added CORS handling middleware to the Go server
 Inconsistent href formatting	- Normalized and joined relative paths with the base URL
 
 ## Imporvements
+
 Introduce pagination for the result - when there are multiple inaccessibility links
 Add support for JavaScript-rendered content (Instagram, Facebook)
 

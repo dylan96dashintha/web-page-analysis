@@ -57,10 +57,10 @@ open the index.html (static/index.html) file in your browser manually.
 ## Main Assumptions
 
 #### Internal/External Link Classification
-If a link's hostname differs from the base URL, it is considered external; otherwise, it's internal.
+If a link's hostname differs from the base URL, it is considered external, otherwise it's internal.
 
 #### Accessibility Check
-The system sends HTTP requests to each link. If no errors occur (e.g., timeouts, unreachable hosts) and the status code is within the 200–299 range, the link is considered accessible.
+The system sends HTTP requests to each link. If no errors occur (timeouts) and the status code is within the 200–299 range, the link is considered accessible.
 
 #### Duplicate Removal
 Duplicate links are ignored to prevent redundant processing.

@@ -22,7 +22,7 @@ func (v validation) IsValidUrl(ctx context.Context, urlString string) bool {
 	if err != nil {
 		return false
 	}
-	if parsedURL.Scheme == "" || parsedURL.Host == "" {
+	if parsedURL != nil && (parsedURL.Scheme == "" || parsedURL.Host == "") {
 		return false
 	}
 	return true

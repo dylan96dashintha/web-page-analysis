@@ -104,12 +104,12 @@ func TestCountLinksWithAccessible(t *testing.T) {
 <body>
     <h1>Welcome</h1>
 
-    <!-- Internal links -->
+    // internal links
     <a href="/about">About Us</a>
     <a href="/contact">Contact</a>
     <a href="privacy.html">Privacy Policy</a>
 
-    <!-- External links -->
+    // external links
     <a href="https://example.com">Example</a>
     <a href="http://external.org/page">External Page</a>
     <a href="https://www.google.com/search?q=go">Google Search</a>
@@ -131,6 +131,72 @@ func TestCountLinksWithAccessible(t *testing.T) {
 	assert.Equal(t, 0, actual.InaccessibleLinkCount)
 }
 
+func TestCountLinksWithDuplicates(t *testing.T) {
+	var (
+		htmlForTitleCheck = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Link Test Page</title>
+</head>
+<body>
+    <h1>Welcome</h1>
+
+	// internal links
+    <a href="/about">About Us</a>
+    <a href="/contact">Contact</a>
+    <a href="/contact">Privacy Policy</a>
+</body>
+</html>
+`
+	)
+	ctx := context.Background()
+	ctr := container.Container{OBAdapter: mockOutBoundConnection{}}
+	mockOutboundResp = &http.Response{
+		StatusCode: 200,
+		Body:       io.NopCloser(strings.NewReader("")),
+	}
+	analyser := NewAnalyser(ctr)
+
+	actual := analyser.CountLinks(ctx, docFromHTML(t, htmlForTitleCheck), "http://abc.com/")
+	assert.Equal(t, 2, actual.InternalLinks)
+	assert.Equal(t, 0, actual.ExternalLinks)
+	assert.Equal(t, 0, actual.InaccessibleLinkCount)
+}
+
+func TestCountLinksWithHashLink(t *testing.T) {
+	var (
+		htmlForTitleCheck = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Link Test Page</title>
+</head>
+<body>
+    <h1>Welcome</h1>
+
+	// internal links
+    <a href="/about">About Us</a>
+    <a href="/contact">Contact</a>
+    <a href="#blog">Privacy Policy</a>
+</body>
+</html>
+`
+	)
+	ctx := context.Background()
+	ctr := container.Container{OBAdapter: mockOutBoundConnection{}}
+	mockOutboundResp = &http.Response{
+		StatusCode: 200,
+		Body:       io.NopCloser(strings.NewReader("")),
+	}
+	analyser := NewAnalyser(ctr)
+
+	actual := analyser.CountLinks(ctx, docFromHTML(t, htmlForTitleCheck), "http://abc.com/")
+	assert.Equal(t, 2, actual.InternalLinks)
+	assert.Equal(t, 0, actual.ExternalLinks)
+	assert.Equal(t, 0, actual.InaccessibleLinkCount)
+}
+
 func TestCountLinksWithInaccessible(t *testing.T) {
 	var (
 		htmlForTitleCheck = `
@@ -142,12 +208,12 @@ func TestCountLinksWithInaccessible(t *testing.T) {
 <body>
     <h1>Welcome</h1>
 
-    <!-- Internal links -->
+    // internal links
     <a href="/about">About Us</a>
     <a href="/contact">Contact</a>
     <a href="privacy.html">Privacy Policy</a>
 
-    <!-- External links -->
+    // external links
     <a href="https://example.com">Example</a>
     <a href="http://external.org/page">External Page</a>
     <a href="https://www.google.com/search?q=go">Google Search</a>
@@ -169,7 +235,7 @@ func TestCountLinksWithInaccessible(t *testing.T) {
 	assert.Equal(t, 6, actual.InaccessibleLinkCount)
 }
 
-func TestCountLinksWithInaccessibleByReturninigError(t *testing.T) {
+func TestCountLinksWithInaccessibleByReturningError(t *testing.T) {
 	var (
 		htmlForTitleCheck = `
 <!DOCTYPE html>
@@ -180,12 +246,12 @@ func TestCountLinksWithInaccessibleByReturninigError(t *testing.T) {
 <body>
     <h1>Welcome</h1>
 
-    <!-- Internal links -->
+    // internal links
     <a href="/about">About Us</a>
     <a href="/contact">Contact</a>
     <a href="privacy.html">Privacy Policy</a>
 
-    <!-- External links -->
+    // external links
     <a href="https://example.com">Example</a>
     <a href="http://external.org/page">External Page</a>
     <a href="https://www.google.com/search?q=go">Google Search</a>
@@ -214,16 +280,6 @@ func TestCheckHtmlVersion(t *testing.T) {
 </head>
 <body>
     <h1>Welcome</h1>
-
-    <!-- Internal links -->
-    <a href="/about">About Us</a>
-    <a href="/contact">Contact</a>
-    <a href="privacy.html">Privacy Policy</a>
-
-    <!-- External links -->
-    <a href="https://example.com">Example</a>
-    <a href="http://external.org/page">External Page</a>
-    <a href="https://www.google.com/search?q=go">Google Search</a>
 </body>
 </html>
 `
@@ -234,4 +290,63 @@ func TestCheckHtmlVersion(t *testing.T) {
 
 	actual := analyser.CheckHtmlVersion(ctx, htmlForTitleCheck)
 	assert.Equal(t, "HTML5", actual)
+}
+
+func TestCheckAnyLogin(t *testing.T) {
+	var (
+		htmlForTitleCheck = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Page</title>
+</head>
+<body>
+    <h1>Please Login</h1>
+
+    <form action="/login" method="post">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" />
+    </form>
+
+    <a href="/forgot-password">Forgot Password?</a>
+    <a href="/signup">Sign up</a>
+</body>
+</html>
+`
+	)
+	ctx := context.Background()
+	ctr := container.Container{OBAdapter: mockOutBoundConnection{}}
+	analyser := NewAnalyser(ctr)
+
+	actual := analyser.CheckAnyLogin(ctx, docFromHTML(t, htmlForTitleCheck))
+	assert.Equal(t, true, actual)
+}
+
+func TestCheckAnyLoginWithPassword(t *testing.T) {
+	var (
+		htmlForTitleCheck = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Page</title>
+</head>
+<body>
+    <h1>Please Login</h1>
+
+    <form action="/login" method="post">
+         <input type="Password" id="password" name="password" />
+    </form>
+
+    <a href="/forgot-password">Forgot Password?</a>
+    <a href="/signup">Sign up</a>
+</body>
+</html>
+`
+	)
+	ctx := context.Background()
+	ctr := container.Container{OBAdapter: mockOutBoundConnection{}}
+	analyser := NewAnalyser(ctr)
+
+	actual := analyser.CheckAnyLogin(ctx, docFromHTML(t, htmlForTitleCheck))
+	assert.Equal(t, true, actual)
 }

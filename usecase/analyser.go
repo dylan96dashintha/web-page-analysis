@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	log "github.com/sirupsen/logrus"
 	"github.com/web-page-analysis/container"
 	"github.com/web-page-analysis/domain"
 	"strings"
@@ -11,7 +12,8 @@ import (
 )
 
 const (
-	title = "title"
+	title          = "title"
+	analyserPrefix = "usecase.analyser"
 )
 
 type Analyser interface {
@@ -26,9 +28,12 @@ type analyser struct {
 	ctr container.Container
 }
 
+// CheckHtmlVersion check the html version
+// if the condition passed, then it returns
+// otherwise it returns as unknown
 func (a analyser) CheckHtmlVersion(ctx context.Context, rawHTML string) string {
+	log.WithContext(ctx).Info(analyserPrefix, "start to checking HTML version", rawHTML)
 	rawHTML = strings.ToLower(rawHTML)
-
 	switch {
 	case strings.Contains(rawHTML, `<!doctype html>`):
 		return "HTML5"
@@ -44,24 +49,38 @@ func (a analyser) CheckHtmlVersion(ctx context.Context, rawHTML string) string {
 }
 
 func (a analyser) CheckAnyLogin(ctx context.Context, doc *goquery.Document) bool {
+	log.WithContext(ctx).Info(analyserPrefix, "start to checking login", doc)
 	var isExist bool
-	// Check for login form
 	doc.Find("form").Each(func(i int, s *goquery.Selection) {
-		if s.Find("input[type='password']").Length() > 0 ||
-			s.Find("input[type='email']").Length() > 0 ||
-			s.Find("input[name='username']").Length() > 0 ||
-			s.Text() != "" && strings.Contains(strings.ToLower(s.Text()), "log in") {
-			isExist = true
+		s.Find("input").Each(func(j int, input *goquery.Selection) {
+			inputType, _ := input.Attr("type")
+			inputName, _ := input.Attr("name")
+
+			if strings.ToLower(inputType) == "password" ||
+				strings.ToLower(inputType) == "email" ||
+				strings.ToLower(inputName) == "username" {
+				isExist = true
+			}
+		})
+
+		if !isExist {
+			text := strings.ToLower(s.Text())
+			if strings.Contains(text, "log in") || strings.Contains(text, "login") {
+				isExist = true
+			}
 		}
 	})
+
 	return isExist
 }
 
 func (a analyser) GetTitle(ctx context.Context, doc *goquery.Document) string {
+	log.WithContext(ctx).Info(analyserPrefix, "start to fetching the title", doc)
 	return doc.Find(title).Text()
 }
 
 func (a analyser) CountHeading(ctx context.Context, doc *goquery.Document) map[string]int {
+	log.WithContext(ctx).Info(analyserPrefix, "start to counting the heading", doc)
 	headingsMap := map[string]int{}
 	for i := 1; i <= 6; i++ {
 		tag := fmt.Sprintf("h%d", i)
@@ -72,19 +91,22 @@ func (a analyser) CountHeading(ctx context.Context, doc *goquery.Document) map[s
 }
 
 func (a analyser) CountLinks(ctx context.Context, doc *goquery.Document, baseURL string) domain.Link {
+	log.WithContext(ctx).Info(analyserPrefix, "start to counting the links", doc)
 	var (
-		link        domain.Link
-		linkMu      sync.Mutex
-		linkJobs    = make(chan string)
-		wg          sync.WaitGroup
-		workerCount = 200
+		link          domain.Link
+		linkMu        sync.Mutex
+		linkJobs      = make(chan string)
+		wg            sync.WaitGroup
+		workerCount   = 200
+		distinctLinks = make(map[string]interface{})
 	)
 
 	link.InaccessibleLink = make([]string, 0)
 
 	baseURL = normalizeURL(baseURL)
 
-	// Start worker pool
+	// initiate the worker pool with the config value
+	// only to check the accessibility of the links
 	for i := 0; i < workerCount; i++ {
 		wg.Add(1)
 		go func() {
@@ -92,8 +114,6 @@ func (a analyser) CountLinks(ctx context.Context, doc *goquery.Document, baseURL
 			for href := range linkJobs {
 				var inaccessible bool
 				fullURL := resolveURL(baseURL, href)
-
-				// Check link accessibility
 				resp, err := a.ctr.OBAdapter.Get(ctx, fullURL)
 				if resp != nil && resp.Body != nil {
 					defer resp.Body.Close()
@@ -122,13 +142,21 @@ func (a analyser) CountLinks(ctx context.Context, doc *goquery.Document, baseURL
 		}()
 	}
 
-	// Collect jobs
+	// select the element
+	// then get the href
+	// ignore the #
 	doc.Find("a").Each(func(i int, s *goquery.Selection) {
 		href, exists := s.Attr("href")
 		if !exists || strings.HasPrefix(href, "#") {
 			return
 		}
-		linkJobs <- href
+
+		// add in to map to get the distinct links
+		_, ok := distinctLinks[href]
+		if !ok {
+			distinctLinks[href] = nil
+			linkJobs <- href
+		}
 	})
 
 	close(linkJobs)

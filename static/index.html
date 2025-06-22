@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Web Page Analyzer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 2rem;
+        }
+        input {
+            width: 60%;
+            padding: 0.5rem;
+        }
+        button {
+            padding: 0.5rem 1rem;
+            margin-left: 1rem;
+        }
+        #result {
+            margin-top: 2rem;
+            background: #f9f9f9;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Analyze a Web Page</h1>
+
+<input id="urlInput" type="text" placeholder="Enter a website URL" />
+<button onclick="analyze()">Analyze</button>
+
+<div id="result"></div>
+
+<script>
+    async function analyze() {
+        const url = document.getElementById("urlInput").value;
+        const resultEl = document.getElementById("result");
+        resultEl.innerHTML = "Analyzing...";
+
+        try {
+            const res = await fetch("http://localhost:8080/analyse", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url })
+            });
+
+            if (!res.ok) {
+                const errText = await res.text();
+                resultEl.innerHTML = `<span style="color: red;">Error: ${res.status} - ${errText}</span>`;
+                return;
+            }
+
+            const data = await res.json();
+
+            // Format and display results
+            let html = `
+          <strong>HTML Version:</strong> ${data.html_version}<br>
+          <strong>Title:</strong> ${data.title}<br><br>
+
+          <strong>Headings:</strong><br>
+          <ul>${Object.entries(data.headings).map(([tag, count]) => `<li>${tag.toUpperCase()}: ${count}</li>`).join("")}</ul>
+
+          <strong>Links:</strong><br>
+          Internal: ${data.link.internal_links} <br>
+          External: ${data.link.external_links} <br>
+          Inaccessible ${data.link.inaccessible_link_count}<br>
+          Inaccessible links <ul>${data.link.inaccessible_link.map(link => `<li>${link}</li>`).join("")}</ul><br>
+
+          <strong>Login Form Detected:</strong> ${data.has_login_form ? "Yes" : "No"}
+        `;
+
+            resultEl.innerHTML = html;
+
+        } catch (err) {
+            resultEl.innerHTML = `<span style="color: red;">Error: ${err.message}</span>`;
+        }
+    }
+</script>
+
+</body>
+</html>

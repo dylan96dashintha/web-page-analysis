@@ -3,7 +3,9 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	log "github.com/sirupsen/logrus"
 	"github.com/web-page-analysis/container"
 	"github.com/web-page-analysis/domain"
 	"github.com/web-page-analysis/usecase"
@@ -11,6 +13,10 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+)
+
+const (
+	prefix = "service.analyser"
 )
 
 type Analyser interface {
@@ -28,15 +34,27 @@ func NewAnalyser(ctr container.Container) Analyser {
 }
 
 func (a analyser) WebAnalyser(ctx context.Context, req domain.AnalyserRequest) (res domain.AnalysisResult, err error) {
+	log.WithContext(ctx).Info(prefix, "start to analyse the url")
+	// validate the url
+	validatorObj := usecase.NewValidation()
+	isValid := validatorObj.IsValidUrl(ctx, req.Url)
+	if !isValid {
+		return res, errors.New("invalid url")
+	}
 
+	// start analysing the webpage
 	analyserObj := usecase.NewAnalyser(a.container)
+
+	// call the webpage to get the html
 	resp, err := a.container.OBAdapter.Get(ctx, req.Url)
 	if err != nil {
 		return res, err
 	}
 	if resp != nil && resp.StatusCode != http.StatusOK {
-		return res, errors.New("Unable in reaching to the server")
+		return res, errors.New(fmt.Sprintf("Error in reaching server,  status: %s", resp.Status))
 	}
+
+	// close the resp body in need to close the file descriptor in resource level
 	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
@@ -44,6 +62,7 @@ func (a analyser) WebAnalyser(ctx context.Context, req domain.AnalyserRequest) (
 		return res, err
 	}
 	bodyString := string(bodyBytes)
+	// need to read the resp.Body twice, to overcome this,used this technique
 	resp.Body = io.NopCloser(strings.NewReader(bodyString))
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
@@ -59,6 +78,8 @@ func (a analyser) WebAnalyser(ctx context.Context, req domain.AnalyserRequest) (
 		link        domain.Link
 		heading     map[string]int
 	)
+
+	// get the title of the html
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -66,6 +87,7 @@ func (a analyser) WebAnalyser(ctx context.Context, req domain.AnalyserRequest) (
 		return
 	}()
 
+	// get the html version of the html
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -73,6 +95,7 @@ func (a analyser) WebAnalyser(ctx context.Context, req domain.AnalyserRequest) (
 		return
 	}()
 
+	// check any logins are there in the html
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -81,6 +104,7 @@ func (a analyser) WebAnalyser(ctx context.Context, req domain.AnalyserRequest) (
 
 	}()
 
+	// check any links are there in the html
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -89,6 +113,7 @@ func (a analyser) WebAnalyser(ctx context.Context, req domain.AnalyserRequest) (
 
 	}()
 
+	// count the heading types in the html
 	wg.Add(1)
 	go func() {
 		defer wg.Done()

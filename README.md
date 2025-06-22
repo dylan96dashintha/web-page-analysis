@@ -4,12 +4,12 @@ This project allows you to analyze web pages through a simple UI. Uses a Go serv
 ## Getting Started
 ### 1.Clone the repo
 ```bash
-git clone [<your-github-repo-url>](https://github.com/dylan96dashintha/web-page-analysis.git)
+git clone https://github.com/dylan96dashintha/web-page-analysis.git
 ```
 
 ### 2. Navigate to the Project Directory
 ```bash
-cd [<repo>](https://github.com/dylan96dashintha/web-page-analysis.git)
+cd web-page-analysis
 ```
 
 ### 3. Build the Docker image

@@ -16,7 +16,7 @@ import (
 func InitRouter(ctx context.Context, conf bootstrap.Config, ctr container.Container) {
 	r := mux.NewRouter()
 
-	analyserObj := endpoint.NewAnalyser(ctr)
+	analyserObj := endpoint.NewAnalyser(ctr, conf)
 	r.HandleFunc("/analyse", analyserObj.Analyse).Methods(http.MethodPost, http.MethodOptions)
 	corsHandler := middleware.CorsMiddleware(r)
 	server := &http.Server{

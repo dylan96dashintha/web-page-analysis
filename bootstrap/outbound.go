@@ -6,8 +6,8 @@ import (
 )
 
 type OutboundConfig struct {
-	DialTimeout   int64 `json:"dial_timeout"`
-	RemoteTimeout int64 `json:"remote_timeout"`
+	DialTimeout   int64 `yaml:"dial_timeout"`
+	RemoteTimeout int64 `yaml:"remote_timeout"`
 }
 
 func initOutboundConfig() error {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	log "github.com/sirupsen/logrus"
+	"github.com/web-page-analysis/bootstrap"
 	"github.com/web-page-analysis/container"
 	"github.com/web-page-analysis/domain"
 	"strings"
@@ -25,7 +26,8 @@ type Analyser interface {
 }
 
 type analyser struct {
-	ctr container.Container
+	ctr    container.Container
+	config bootstrap.Config
 }
 
 // CheckHtmlVersion check the html version
@@ -97,7 +99,6 @@ func (a analyser) CountLinks(ctx context.Context, doc *goquery.Document, baseURL
 		linkMu        sync.Mutex
 		linkJobs      = make(chan string)
 		wg            sync.WaitGroup
-		workerCount   = 200
 		distinctLinks = make(map[string]interface{})
 	)
 
@@ -107,7 +108,7 @@ func (a analyser) CountLinks(ctx context.Context, doc *goquery.Document, baseURL
 
 	// initiate the worker pool with the config value
 	// only to check the accessibility of the links
-	for i := 0; i < workerCount; i++ {
+	for i := 0; i < int(a.config.AppConfig.WorkerCount); i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -164,9 +165,10 @@ func (a analyser) CountLinks(ctx context.Context, doc *goquery.Document, baseURL
 	return link
 }
 
-func NewAnalyser(ctr container.Container) Analyser {
+func NewAnalyser(ctr container.Container, cfg bootstrap.Config) Analyser {
 	return &analyser{
-		ctr: ctr,
+		ctr:    ctr,
+		config: cfg,
 	}
 }
 func normalizeURL(url string) string {

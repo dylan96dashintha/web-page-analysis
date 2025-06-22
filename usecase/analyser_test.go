@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/web-page-analysis/bootstrap"
 	"github.com/web-page-analysis/container"
 	"io"
 	"net/http"
@@ -46,7 +47,8 @@ func TestGetTitle(t *testing.T) {
 	)
 	ctx := context.Background()
 	ctr := container.Container{OBAdapter: mockOutBoundConnection{}}
-	analyser := NewAnalyser(ctr)
+	conf := bootstrap.Config{}
+	analyser := NewAnalyser(ctr, conf)
 
 	actual := analyser.GetTitle(ctx, docFromHTML(t, htmlForTitleCheck))
 	assert.Equal(t, "Test Page", actual)
@@ -63,7 +65,12 @@ func TestGetWithoutTitle(t *testing.T) {
 	)
 	ctx := context.Background()
 	ctr := container.Container{OBAdapter: mockOutBoundConnection{}}
-	analyser := NewAnalyser(ctr)
+	conf := bootstrap.Config{
+		AppConfig: bootstrap.AppConfig{
+			WorkerCount: 200,
+		},
+	}
+	analyser := NewAnalyser(ctr, conf)
 
 	actual := analyser.GetTitle(ctx, docFromHTML(t, htmlForTitleCheck))
 	assert.Equal(t, "", actual)
@@ -84,7 +91,12 @@ func TestCountHeading(t *testing.T) {
 	)
 	ctx := context.Background()
 	ctr := container.Container{OBAdapter: mockOutBoundConnection{}}
-	analyser := NewAnalyser(ctr)
+	conf := bootstrap.Config{
+		AppConfig: bootstrap.AppConfig{
+			WorkerCount: 200,
+		},
+	}
+	analyser := NewAnalyser(ctr, conf)
 
 	actual := analyser.CountHeading(ctx, docFromHTML(t, htmlForTitleCheck))
 	assert.Equal(t, 2, actual["h1"])
@@ -123,7 +135,12 @@ func TestCountLinksWithAccessible(t *testing.T) {
 		StatusCode: 200,
 		Body:       io.NopCloser(strings.NewReader("")),
 	}
-	analyser := NewAnalyser(ctr)
+	conf := bootstrap.Config{
+		AppConfig: bootstrap.AppConfig{
+			WorkerCount: 200,
+		},
+	}
+	analyser := NewAnalyser(ctr, conf)
 
 	actual := analyser.CountLinks(ctx, docFromHTML(t, htmlForTitleCheck), "http://abc.com/")
 	assert.Equal(t, 3, actual.InternalLinks)
@@ -156,7 +173,12 @@ func TestCountLinksWithDuplicates(t *testing.T) {
 		StatusCode: 200,
 		Body:       io.NopCloser(strings.NewReader("")),
 	}
-	analyser := NewAnalyser(ctr)
+	conf := bootstrap.Config{
+		AppConfig: bootstrap.AppConfig{
+			WorkerCount: 200,
+		},
+	}
+	analyser := NewAnalyser(ctr, conf)
 
 	actual := analyser.CountLinks(ctx, docFromHTML(t, htmlForTitleCheck), "http://abc.com/")
 	assert.Equal(t, 2, actual.InternalLinks)
@@ -189,7 +211,12 @@ func TestCountLinksWithHashLink(t *testing.T) {
 		StatusCode: 200,
 		Body:       io.NopCloser(strings.NewReader("")),
 	}
-	analyser := NewAnalyser(ctr)
+	conf := bootstrap.Config{
+		AppConfig: bootstrap.AppConfig{
+			WorkerCount: 200,
+		},
+	}
+	analyser := NewAnalyser(ctr, conf)
 
 	actual := analyser.CountLinks(ctx, docFromHTML(t, htmlForTitleCheck), "http://abc.com/")
 	assert.Equal(t, 2, actual.InternalLinks)
@@ -227,7 +254,12 @@ func TestCountLinksWithInaccessible(t *testing.T) {
 		StatusCode: 404,
 		Body:       io.NopCloser(strings.NewReader("")),
 	}
-	analyser := NewAnalyser(ctr)
+	conf := bootstrap.Config{
+		AppConfig: bootstrap.AppConfig{
+			WorkerCount: 200,
+		},
+	}
+	analyser := NewAnalyser(ctr, conf)
 
 	actual := analyser.CountLinks(ctx, docFromHTML(t, htmlForTitleCheck), "http://abc.com/")
 	assert.Equal(t, 3, actual.InternalLinks)
@@ -262,7 +294,12 @@ func TestCountLinksWithInaccessibleByReturningError(t *testing.T) {
 	ctx := context.Background()
 	ctr := container.Container{OBAdapter: mockOutBoundConnection{}}
 	mockOutBoundError = errors.New("mock outbound error")
-	analyser := NewAnalyser(ctr)
+	conf := bootstrap.Config{
+		AppConfig: bootstrap.AppConfig{
+			WorkerCount: 200,
+		},
+	}
+	analyser := NewAnalyser(ctr, conf)
 
 	actual := analyser.CountLinks(ctx, docFromHTML(t, htmlForTitleCheck), "http://abc.com/")
 	assert.Equal(t, 3, actual.InternalLinks)
@@ -286,7 +323,12 @@ func TestCheckHtmlVersion(t *testing.T) {
 	)
 	ctx := context.Background()
 	ctr := container.Container{OBAdapter: mockOutBoundConnection{}}
-	analyser := NewAnalyser(ctr)
+	conf := bootstrap.Config{
+		AppConfig: bootstrap.AppConfig{
+			WorkerCount: 200,
+		},
+	}
+	analyser := NewAnalyser(ctr, conf)
 
 	actual := analyser.CheckHtmlVersion(ctx, htmlForTitleCheck)
 	assert.Equal(t, "HTML5", actual)
@@ -316,7 +358,12 @@ func TestCheckAnyLogin(t *testing.T) {
 	)
 	ctx := context.Background()
 	ctr := container.Container{OBAdapter: mockOutBoundConnection{}}
-	analyser := NewAnalyser(ctr)
+	conf := bootstrap.Config{
+		AppConfig: bootstrap.AppConfig{
+			WorkerCount: 200,
+		},
+	}
+	analyser := NewAnalyser(ctr, conf)
 
 	actual := analyser.CheckAnyLogin(ctx, docFromHTML(t, htmlForTitleCheck))
 	assert.Equal(t, true, actual)
@@ -345,7 +392,12 @@ func TestCheckAnyLoginWithPassword(t *testing.T) {
 	)
 	ctx := context.Background()
 	ctr := container.Container{OBAdapter: mockOutBoundConnection{}}
-	analyser := NewAnalyser(ctr)
+	conf := bootstrap.Config{
+		AppConfig: bootstrap.AppConfig{
+			WorkerCount: 200,
+		},
+	}
+	analyser := NewAnalyser(ctr, conf)
 
 	actual := analyser.CheckAnyLogin(ctx, docFromHTML(t, htmlForTitleCheck))
 	assert.Equal(t, true, actual)

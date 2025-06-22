@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"github.com/web-page-analysis/bootstrap"
 	"github.com/web-page-analysis/container"
 	"github.com/web-page-analysis/domain"
 	erro "github.com/web-page-analysis/server/error"
@@ -14,11 +15,13 @@ import (
 
 type Analyser struct {
 	container container.Container
+	config    bootstrap.Config
 }
 
-func NewAnalyser(ctr container.Container) *Analyser {
+func NewAnalyser(ctr container.Container, config bootstrap.Config) *Analyser {
 	return &Analyser{
 		container: ctr,
+		config:    config,
 	}
 }
 
@@ -35,7 +38,7 @@ func (a Analyser) Analyse(w http.ResponseWriter, r *http.Request) {
 			err), w)
 		return
 	}
-	analyser := service.NewAnalyser(a.container)
+	analyser := service.NewAnalyser(a.container, a.config)
 	result, err := analyser.WebAnalyser(ctx, analyserRequest)
 	if err != nil {
 		erro.GeneralError(fmt.Sprintf("err: %+v",

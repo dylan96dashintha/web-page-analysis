@@ -6,7 +6,8 @@ import (
 )
 
 type AppConfig struct {
-	Port int64 `json:"port"`
+	Port        int64 `yaml:"port"`
+	WorkerCount int64 `yaml:"worker_count"`
 }
 
 func initAppConfig() error {

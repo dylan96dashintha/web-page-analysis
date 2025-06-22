@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	log "github.com/sirupsen/logrus"
+	"github.com/web-page-analysis/bootstrap"
 	"github.com/web-page-analysis/container"
 	"github.com/web-page-analysis/domain"
 	"github.com/web-page-analysis/usecase"
@@ -25,11 +26,13 @@ type Analyser interface {
 
 type analyser struct {
 	container container.Container
+	config    bootstrap.Config
 }
 
-func NewAnalyser(ctr container.Container) Analyser {
+func NewAnalyser(ctr container.Container, config bootstrap.Config) Analyser {
 	return &analyser{
 		container: ctr,
+		config:    config,
 	}
 }
 
@@ -43,7 +46,7 @@ func (a analyser) WebAnalyser(ctx context.Context, req domain.AnalyserRequest) (
 	}
 
 	// start analysing the webpage
-	analyserObj := usecase.NewAnalyser(a.container)
+	analyserObj := usecase.NewAnalyser(a.container, a.config)
 
 	// call the webpage to get the html
 	resp, err := a.container.OBAdapter.Get(ctx, req.Url)

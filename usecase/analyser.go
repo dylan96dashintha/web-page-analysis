@@ -121,6 +121,8 @@ func (a analyser) CountLinks(ctx context.Context, doc *goquery.Document, baseURL
 				}
 
 				if err != nil || resp != nil && (resp.StatusCode > 300 || resp.StatusCode < 200) {
+					log.WithContext(ctx).Error(analyserPrefix,
+						"inaccessible link, err: ", err, " url: ", href, "resp: ", resp)
 					inaccessible = true
 				}
 

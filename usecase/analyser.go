@@ -14,7 +14,7 @@ import (
 
 const (
 	title          = "title"
-	analyserPrefix = "usecase.analyser"
+	analyserPrefix = "usecase.analyser "
 )
 
 type Analyser interface {
@@ -34,7 +34,7 @@ type analyser struct {
 // if the condition passed, then it returns
 // otherwise it returns as unknown
 func (a analyser) CheckHtmlVersion(ctx context.Context, rawHTML string) string {
-	log.WithContext(ctx).Info(analyserPrefix, "start to checking HTML version", rawHTML)
+	log.WithContext(ctx).Info(analyserPrefix, "start to checking HTML version")
 	rawHTML = strings.ToLower(rawHTML)
 	switch {
 	case strings.Contains(rawHTML, `<!doctype html>`):
@@ -51,7 +51,7 @@ func (a analyser) CheckHtmlVersion(ctx context.Context, rawHTML string) string {
 }
 
 func (a analyser) CheckAnyLogin(ctx context.Context, doc *goquery.Document) bool {
-	log.WithContext(ctx).Info(analyserPrefix, "start to checking login", doc)
+	log.WithContext(ctx).Info(analyserPrefix, "start to checking login")
 	var isExist bool
 	doc.Find("form").Each(func(i int, s *goquery.Selection) {
 		s.Find("input").Each(func(j int, input *goquery.Selection) {
@@ -77,12 +77,12 @@ func (a analyser) CheckAnyLogin(ctx context.Context, doc *goquery.Document) bool
 }
 
 func (a analyser) GetTitle(ctx context.Context, doc *goquery.Document) string {
-	log.WithContext(ctx).Info(analyserPrefix, "start to fetching the title", doc)
+	log.WithContext(ctx).Info(analyserPrefix, "start to fetching the title")
 	return doc.Find(title).Text()
 }
 
 func (a analyser) CountHeading(ctx context.Context, doc *goquery.Document) map[string]int {
-	log.WithContext(ctx).Info(analyserPrefix, "start to counting the heading", doc)
+	log.WithContext(ctx).Info(analyserPrefix, "start to counting the heading")
 	headingsMap := map[string]int{}
 	for i := 1; i <= 6; i++ {
 		tag := fmt.Sprintf("h%d", i)
@@ -93,7 +93,7 @@ func (a analyser) CountHeading(ctx context.Context, doc *goquery.Document) map[s
 }
 
 func (a analyser) CountLinks(ctx context.Context, doc *goquery.Document, baseURL string) domain.Link {
-	log.WithContext(ctx).Info(analyserPrefix, "start to counting the links", doc)
+	log.WithContext(ctx).Info(analyserPrefix, "start to counting the links")
 	var (
 		link          domain.Link
 		linkMu        sync.Mutex

@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	prefix = "service.analyser"
+	prefix = "service.analyser "
 )
 
 type Analyser interface {
@@ -42,6 +42,7 @@ func (a analyser) WebAnalyser(ctx context.Context, req domain.AnalyserRequest) (
 	validatorObj := usecase.NewValidation()
 	isValid := validatorObj.IsValidUrl(ctx, req.Url)
 	if !isValid {
+		log.WithContext(ctx).Error(prefix, "Invalid url")
 		return res, errors.New("invalid url")
 	}
 
@@ -51,9 +52,11 @@ func (a analyser) WebAnalyser(ctx context.Context, req domain.AnalyserRequest) (
 	// call the webpage to get the html
 	resp, err := a.container.OBAdapter.Get(ctx, req.Url)
 	if err != nil {
+		log.WithContext(ctx).Error(prefix, "Error in calling outbound call, err: ", err)
 		return res, err
 	}
 	if resp != nil && resp.StatusCode != http.StatusOK {
+		log.WithContext(ctx).Error(prefix, "Error in calling outbound call, status: ", resp.StatusCode)
 		return res, errors.New(fmt.Sprintf("Error in reaching server,  status: %s", resp.Status))
 	}
 
@@ -62,6 +65,7 @@ func (a analyser) WebAnalyser(ctx context.Context, req domain.AnalyserRequest) (
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
+		log.WithContext(ctx).Error(prefix, "Error in reading response body, err: ", err)
 		return res, err
 	}
 	bodyString := string(bodyBytes)
@@ -70,6 +74,7 @@ func (a analyser) WebAnalyser(ctx context.Context, req domain.AnalyserRequest) (
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
+		log.WithContext(ctx).Error(prefix, "Data cannot be parsed to HTML, err: ", err)
 		return res, err
 	}
 

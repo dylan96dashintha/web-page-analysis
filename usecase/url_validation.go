@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	validationPrefix = "usecase.url_validation"
+	validationPrefix = "usecase.url_validation "
 )
 
 type Validation interface {

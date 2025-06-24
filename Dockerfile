@@ -1,7 +1,7 @@
 FROM golang:1.24.2-alpine as builder
 WORKDIR /app
 COPY . .
-RUN go build .
+RUN go mod tidy && go build .
 
 # Final image
 FROM alpine:latest

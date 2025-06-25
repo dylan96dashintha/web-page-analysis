@@ -49,6 +49,6 @@ func GeneralError(message, developerMessage string, code int64, w http.ResponseW
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusInternalServerError)
+	w.WriteHeader(int(code))
 	w.Write(data)
 }

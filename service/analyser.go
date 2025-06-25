@@ -21,7 +21,7 @@ const (
 )
 
 type Analyser interface {
-	WebAnalyser(ctx context.Context, req domain.AnalyserRequest) (res domain.AnalysisResult, err error)
+	WebAnalyser(ctx context.Context, req domain.AnalyserRequest) (res domain.AnalysisResult, errorCode int64, err error)
 }
 
 type analyser struct {
@@ -36,14 +36,14 @@ func NewAnalyser(ctr container.Container, config bootstrap.Config) Analyser {
 	}
 }
 
-func (a analyser) WebAnalyser(ctx context.Context, req domain.AnalyserRequest) (res domain.AnalysisResult, err error) {
+func (a analyser) WebAnalyser(ctx context.Context, req domain.AnalyserRequest) (res domain.AnalysisResult, errorCode int64, err error) {
 	log.WithContext(ctx).Info(prefix, "start to analyse the url")
 	// validate the url
 	validatorObj := usecase.NewValidation()
 	isValid := validatorObj.IsValidUrl(ctx, req.Url)
 	if !isValid {
 		log.WithContext(ctx).Error(prefix, "Invalid url")
-		return res, errors.New("invalid url")
+		return res, http.StatusBadRequest, errors.New("invalid url")
 	}
 
 	// start analysing the webpage
@@ -53,11 +53,11 @@ func (a analyser) WebAnalyser(ctx context.Context, req domain.AnalyserRequest) (
 	resp, err := a.container.OBAdapter.Get(ctx, req.Url)
 	if err != nil {
 		log.WithContext(ctx).Error(prefix, "Error in calling outbound call, err: ", err)
-		return res, err
+		return res, http.StatusInternalServerError, err
 	}
 	if resp != nil && resp.StatusCode != http.StatusOK {
 		log.WithContext(ctx).Error(prefix, "Error in calling outbound call, status: ", resp.StatusCode)
-		return res, errors.New(fmt.Sprintf("Error in reaching server,  status: %s", resp.Status))
+		return res, int64(resp.StatusCode), errors.New(fmt.Sprintf("Error in reaching server,  status: %s", resp.Status))
 	}
 
 	// close the resp body in need to close the file descriptor in resource level
@@ -66,7 +66,7 @@ func (a analyser) WebAnalyser(ctx context.Context, req domain.AnalyserRequest) (
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.WithContext(ctx).Error(prefix, "Error in reading response body, err: ", err)
-		return res, err
+		return res, http.StatusInternalServerError, err
 	}
 	bodyString := string(bodyBytes)
 	// need to read the resp.Body twice, to overcome this,used this technique
@@ -75,7 +75,7 @@ func (a analyser) WebAnalyser(ctx context.Context, req domain.AnalyserRequest) (
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		log.WithContext(ctx).Error(prefix, "Data cannot be parsed to HTML, err: ", err)
-		return res, err
+		return res, http.StatusInternalServerError, err
 	}
 
 	wg := new(sync.WaitGroup)
@@ -138,6 +138,6 @@ func (a analyser) WebAnalyser(ctx context.Context, req domain.AnalyserRequest) (
 		HasLoginForm: login,
 	}
 
-	return result, nil
+	return result, http.StatusOK, nil
 
 }

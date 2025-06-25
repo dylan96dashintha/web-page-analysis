@@ -39,10 +39,10 @@ func (a Analyser) Analyse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	analyser := service.NewAnalyser(a.container, a.config)
-	result, err := analyser.WebAnalyser(ctx, analyserRequest)
+	result, statusCode, err := analyser.WebAnalyser(ctx, analyserRequest)
 	if err != nil {
 		erro.GeneralError(fmt.Sprintf("err: %+v",
-			err), "error in analysing the webpage", http.StatusInternalServerError, w)
+			err), "error in analysing the webpage", statusCode, w)
 		return
 	}
 	raw, err := json.Marshal(result)

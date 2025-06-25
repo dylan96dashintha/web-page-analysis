@@ -48,7 +48,7 @@
 
             if (!res.ok) {
                 const errText = await res.text();
-                resultEl.innerHTML = `<span style="color: red;">Error: ${res.status} - ${errText}</span>`;
+                resultEl.innerHTML = `<span style="color: red;">Status Code: ${res.status} - ${errText}</span>`;
                 return;
             }
 
@@ -57,10 +57,8 @@
             let html = `
           <strong>HTML Version:</strong> ${data.html_version}<br>
           <strong>Title:</strong> ${data.title}<br><br>
-
-          <strong>Headings:</strong><br>
+          <strong>Headings:</strong>
           <ul>${Object.entries(data.headings).map(([tag, count]) => `<li>${tag.toUpperCase()}: ${count}</li>`).join("")}</ul>
-
           <strong>Links:</strong><br>
           Internal: ${data.link.internal_links} <br>
           External: ${data.link.external_links} <br>

@@ -13,8 +13,13 @@ import (
 )
 
 const (
-	title          = "title"
-	analyserPrefix = "usecase.analyser "
+	title              = "title"
+	analyserPrefix     = "usecase.analyser "
+	password           = "password"
+	username           = "username"
+	email              = "email"
+	loginButtonTextOne = "log in"
+	loginButtonTextTwo = "login"
 )
 
 type Analyser interface {
@@ -34,7 +39,10 @@ type analyser struct {
 // if the condition passed, then it returns
 // otherwise it returns as unknown
 func (a analyser) CheckHtmlVersion(ctx context.Context, rawHTML string) string {
-	log.WithContext(ctx).Info(analyserPrefix, "start to checking HTML version")
+	log.WithContext(ctx).Info(analyserPrefix, "start checking HTML version")
+
+	// to ignore the case sensitivity
+	// all the strings in the doc is converted to lower case
 	rawHTML = strings.ToLower(rawHTML)
 	switch {
 	case strings.Contains(rawHTML, `<!doctype html>`):
@@ -50,24 +58,26 @@ func (a analyser) CheckHtmlVersion(ctx context.Context, rawHTML string) string {
 	}
 }
 
-func (a analyser) CheckAnyLogin(ctx context.Context, doc *goquery.Document) bool {
-	log.WithContext(ctx).Info(analyserPrefix, "start to checking login")
+func (a analyser) CheckAnyLogin(ctx context.Context, doc *goquery.Document) (isLoginExist bool) {
+	log.WithContext(ctx).Info(analyserPrefix, "check any logins are there in the website")
 	var isExist bool
 	doc.Find("form").Each(func(i int, s *goquery.Selection) {
 		s.Find("input").Each(func(j int, input *goquery.Selection) {
 			inputType, _ := input.Attr("type")
 			inputName, _ := input.Attr("name")
 
-			if strings.ToLower(inputType) == "password" ||
-				strings.ToLower(inputType) == "email" ||
-				strings.ToLower(inputName) == "username" {
+			if strings.ToLower(inputType) == password ||
+				strings.ToLower(inputType) == email ||
+				strings.ToLower(inputName) == username {
 				isExist = true
 			}
 		})
 
+		// if those input types are not there
+		// then have to check the button names
 		if !isExist {
 			text := strings.ToLower(s.Text())
-			if strings.Contains(text, "log in") || strings.Contains(text, "login") {
+			if strings.Contains(text, loginButtonTextOne) || strings.Contains(text, loginButtonTextTwo) {
 				isExist = true
 			}
 		}
@@ -82,8 +92,9 @@ func (a analyser) GetTitle(ctx context.Context, doc *goquery.Document) string {
 }
 
 func (a analyser) CountHeading(ctx context.Context, doc *goquery.Document) map[string]int {
-	log.WithContext(ctx).Info(analyserPrefix, "start to counting the heading")
+	log.WithContext(ctx).Info(analyserPrefix, "start to count the heading")
 	headingsMap := map[string]int{}
+	// created heading types to six
 	for i := 1; i <= 6; i++ {
 		tag := fmt.Sprintf("h%d", i)
 		headingsMap[tag] = doc.Find(tag).Length()
@@ -96,8 +107,8 @@ func (a analyser) CountLinks(ctx context.Context, doc *goquery.Document, baseURL
 	log.WithContext(ctx).Info(analyserPrefix, "start to counting the links")
 	var (
 		link          domain.Link
-		linkMu        sync.Mutex
-		linkJobs      = make(chan string)
+		linkLock      sync.Mutex
+		urlChannel    = make(chan string)
 		wg            sync.WaitGroup
 		distinctLinks = make(map[string]interface{})
 	)
@@ -112,9 +123,10 @@ func (a analyser) CountLinks(ctx context.Context, doc *goquery.Document, baseURL
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for href := range linkJobs {
+			for url := range urlChannel {
 				var inaccessible bool
-				fullURL := resolveURL(baseURL, href)
+
+				fullURL := resolveURL(baseURL, url)
 				resp, err := a.ctr.OBAdapter.Get(ctx, fullURL)
 				if resp != nil && resp.Body != nil {
 					defer resp.Body.Close()
@@ -122,25 +134,23 @@ func (a analyser) CountLinks(ctx context.Context, doc *goquery.Document, baseURL
 
 				if err != nil || resp != nil && (resp.StatusCode > 300 || resp.StatusCode < 200) {
 					log.WithContext(ctx).Error(analyserPrefix,
-						"inaccessible link, err: ", err, " url: ", href, "resp: ", resp)
+						"inaccessible link, err: ", err, " url: ", url, "resp: ", resp)
 					inaccessible = true
 				}
 
-				linkMu.Lock()
-				if strings.HasPrefix(href, "http") {
-					if strings.HasPrefix(href, baseURL) {
-						link.InternalLinks++
-					} else {
-						link.ExternalLinks++
-					}
-				} else {
+				linkLock.Lock()
+
+				if strings.HasPrefix(fullURL, baseURL) {
 					link.InternalLinks++
+				} else {
+					link.ExternalLinks++
 				}
+
 				if inaccessible {
 					link.InaccessibleLinkCount++
 					link.InaccessibleLink = append(link.InaccessibleLink, fullURL)
 				}
-				linkMu.Unlock()
+				linkLock.Unlock()
 			}
 		}()
 	}
@@ -149,20 +159,20 @@ func (a analyser) CountLinks(ctx context.Context, doc *goquery.Document, baseURL
 	// then get the href
 	// ignore the #
 	doc.Find("a").Each(func(i int, s *goquery.Selection) {
-		href, exists := s.Attr("href")
-		if !exists || strings.HasPrefix(href, "#") {
+		url, exists := s.Attr("href")
+		if !exists || strings.HasPrefix(url, "#") {
 			return
 		}
 
 		// add in to map to get the distinct links
-		_, ok := distinctLinks[href]
+		_, ok := distinctLinks[url]
 		if !ok {
-			distinctLinks[href] = nil
-			linkJobs <- href
+			distinctLinks[url] = nil
+			urlChannel <- url
 		}
 	})
 
-	close(linkJobs)
+	close(urlChannel)
 	wg.Wait()
 	return link
 }

@@ -56,7 +56,7 @@ func TestGetTitle(t *testing.T) {
 
 func TestGetWithoutTitle(t *testing.T) {
 	var (
-		htmlForTitleCheck = `
+		htmlForTitleCheckWithoutTitle = `
 <!DOCTYPE html>
 <html>
 <body><h1>Hello World</h1></body>
@@ -72,13 +72,13 @@ func TestGetWithoutTitle(t *testing.T) {
 	}
 	analyser := NewAnalyser(ctr, conf)
 
-	actual := analyser.GetTitle(ctx, docFromHTML(t, htmlForTitleCheck))
+	actual := analyser.GetTitle(ctx, docFromHTML(t, htmlForTitleCheckWithoutTitle))
 	assert.Equal(t, "", actual)
 }
 
 func TestCountHeading(t *testing.T) {
 	var (
-		htmlForTitleCheck = `
+		htmlForCountHeading = `
 <!DOCTYPE html>
 <html>
 <head><title>Test Page</title></head>
@@ -98,7 +98,7 @@ func TestCountHeading(t *testing.T) {
 	}
 	analyser := NewAnalyser(ctr, conf)
 
-	actual := analyser.CountHeading(ctx, docFromHTML(t, htmlForTitleCheck))
+	actual := analyser.CountHeading(ctx, docFromHTML(t, htmlForCountHeading))
 	assert.Equal(t, 2, actual["h1"])
 	assert.Equal(t, 1, actual["h2"])
 	assert.Equal(t, 1, actual["h3"])
@@ -107,7 +107,7 @@ func TestCountHeading(t *testing.T) {
 
 func TestCountLinksWithAccessible(t *testing.T) {
 	var (
-		htmlForTitleCheck = `
+		htmlForCountHeadingWithAccessible = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -142,7 +142,7 @@ func TestCountLinksWithAccessible(t *testing.T) {
 	}
 	analyser := NewAnalyser(ctr, conf)
 
-	actual := analyser.CountLinks(ctx, docFromHTML(t, htmlForTitleCheck), "http://abc.com/")
+	actual := analyser.CountLinks(ctx, docFromHTML(t, htmlForCountHeadingWithAccessible), "http://abc.com/")
 	assert.Equal(t, 3, actual.InternalLinks)
 	assert.Equal(t, 3, actual.ExternalLinks)
 	assert.Equal(t, 0, actual.InaccessibleLinkCount)
@@ -150,7 +150,7 @@ func TestCountLinksWithAccessible(t *testing.T) {
 
 func TestCountLinksWithDuplicates(t *testing.T) {
 	var (
-		htmlForTitleCheck = `
+		htmlForCountHeadingWithDuplicates = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -180,7 +180,7 @@ func TestCountLinksWithDuplicates(t *testing.T) {
 	}
 	analyser := NewAnalyser(ctr, conf)
 
-	actual := analyser.CountLinks(ctx, docFromHTML(t, htmlForTitleCheck), "http://abc.com/")
+	actual := analyser.CountLinks(ctx, docFromHTML(t, htmlForCountHeadingWithDuplicates), "http://abc.com/")
 	assert.Equal(t, 2, actual.InternalLinks)
 	assert.Equal(t, 0, actual.ExternalLinks)
 	assert.Equal(t, 0, actual.InaccessibleLinkCount)
@@ -188,7 +188,7 @@ func TestCountLinksWithDuplicates(t *testing.T) {
 
 func TestCountLinksWithHashLink(t *testing.T) {
 	var (
-		htmlForTitleCheck = `
+		htmlForCountHeadingWithHashLink = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -218,7 +218,7 @@ func TestCountLinksWithHashLink(t *testing.T) {
 	}
 	analyser := NewAnalyser(ctr, conf)
 
-	actual := analyser.CountLinks(ctx, docFromHTML(t, htmlForTitleCheck), "http://abc.com/")
+	actual := analyser.CountLinks(ctx, docFromHTML(t, htmlForCountHeadingWithHashLink), "http://abc.com/")
 	assert.Equal(t, 2, actual.InternalLinks)
 	assert.Equal(t, 0, actual.ExternalLinks)
 	assert.Equal(t, 0, actual.InaccessibleLinkCount)
@@ -226,7 +226,7 @@ func TestCountLinksWithHashLink(t *testing.T) {
 
 func TestCountLinksWithInaccessible(t *testing.T) {
 	var (
-		htmlForTitleCheck = `
+		htmlForCountHeadingWithInaccessible = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -261,7 +261,7 @@ func TestCountLinksWithInaccessible(t *testing.T) {
 	}
 	analyser := NewAnalyser(ctr, conf)
 
-	actual := analyser.CountLinks(ctx, docFromHTML(t, htmlForTitleCheck), "http://abc.com/")
+	actual := analyser.CountLinks(ctx, docFromHTML(t, htmlForCountHeadingWithInaccessible), "http://abc.com/")
 	assert.Equal(t, 3, actual.InternalLinks)
 	assert.Equal(t, 3, actual.ExternalLinks)
 	assert.Equal(t, 6, actual.InaccessibleLinkCount)
@@ -269,7 +269,7 @@ func TestCountLinksWithInaccessible(t *testing.T) {
 
 func TestCountLinksWithInaccessibleByReturningError(t *testing.T) {
 	var (
-		htmlForTitleCheck = `
+		htmlForCountHeadingWithInaccessibleByReturningError = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -301,7 +301,7 @@ func TestCountLinksWithInaccessibleByReturningError(t *testing.T) {
 	}
 	analyser := NewAnalyser(ctr, conf)
 
-	actual := analyser.CountLinks(ctx, docFromHTML(t, htmlForTitleCheck), "http://abc.com/")
+	actual := analyser.CountLinks(ctx, docFromHTML(t, htmlForCountHeadingWithInaccessibleByReturningError), "http://abc.com/")
 	assert.Equal(t, 3, actual.InternalLinks)
 	assert.Equal(t, 3, actual.ExternalLinks)
 	assert.Equal(t, 6, actual.InaccessibleLinkCount)
@@ -309,7 +309,7 @@ func TestCountLinksWithInaccessibleByReturningError(t *testing.T) {
 
 func TestCheckHtmlVersion(t *testing.T) {
 	var (
-		htmlForTitleCheck = `
+		htmlForHtmlVersion = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -330,13 +330,13 @@ func TestCheckHtmlVersion(t *testing.T) {
 	}
 	analyser := NewAnalyser(ctr, conf)
 
-	actual := analyser.CheckHtmlVersion(ctx, htmlForTitleCheck)
+	actual := analyser.CheckHtmlVersion(ctx, htmlForHtmlVersion)
 	assert.Equal(t, "HTML5", actual)
 }
 
 func TestCheckAnyLogin(t *testing.T) {
 	var (
-		htmlForTitleCheck = `
+		htmlForLoginCheck = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -365,13 +365,13 @@ func TestCheckAnyLogin(t *testing.T) {
 	}
 	analyser := NewAnalyser(ctr, conf)
 
-	actual := analyser.CheckAnyLogin(ctx, docFromHTML(t, htmlForTitleCheck))
+	actual := analyser.CheckAnyLogin(ctx, docFromHTML(t, htmlForLoginCheck))
 	assert.Equal(t, true, actual)
 }
 
 func TestCheckAnyLoginWithPassword(t *testing.T) {
 	var (
-		htmlForTitleCheck = `
+		htmlForLoginCheckWithPassword = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -399,6 +399,6 @@ func TestCheckAnyLoginWithPassword(t *testing.T) {
 	}
 	analyser := NewAnalyser(ctr, conf)
 
-	actual := analyser.CheckAnyLogin(ctx, docFromHTML(t, htmlForTitleCheck))
+	actual := analyser.CheckAnyLogin(ctx, docFromHTML(t, htmlForLoginCheckWithPassword))
 	assert.Equal(t, true, actual)
 }

@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	title              = "title"
+	titleDoc           = "title"
 	analyserPrefix     = "usecase.analyser "
 	password           = "password"
 	username           = "username"
@@ -23,11 +23,11 @@ const (
 )
 
 type Analyser interface {
-	CheckHtmlVersion(ctx context.Context, rawHtml string) string
-	GetTitle(ctx context.Context, doc *goquery.Document) string
-	CountHeading(ctx context.Context, doc *goquery.Document) map[string]int
-	CountLinks(ctx context.Context, doc *goquery.Document, url string) domain.Link
-	CheckAnyLogin(ctx context.Context, doc *goquery.Document) bool
+	CheckHtmlVersion(ctx context.Context, rawHtml string) (htmlVersion string)
+	GetTitle(ctx context.Context, doc *goquery.Document) (title string)
+	CountHeading(ctx context.Context, doc *goquery.Document) (headerCountMap map[string]int)
+	CountLinks(ctx context.Context, doc *goquery.Document, url string) (linkInfo domain.Link)
+	CheckAnyLogin(ctx context.Context, doc *goquery.Document) (loginExist bool)
 }
 
 type analyser struct {
@@ -38,7 +38,7 @@ type analyser struct {
 // CheckHtmlVersion check the html version
 // if the condition passed, then it returns
 // otherwise it returns as unknown
-func (a analyser) CheckHtmlVersion(ctx context.Context, rawHTML string) string {
+func (a analyser) CheckHtmlVersion(ctx context.Context, rawHTML string) (htmlVersion string) {
 	log.WithContext(ctx).Info(analyserPrefix, "start checking HTML version")
 
 	// to ignore the case sensitivity
@@ -58,7 +58,7 @@ func (a analyser) CheckHtmlVersion(ctx context.Context, rawHTML string) string {
 	}
 }
 
-func (a analyser) CheckAnyLogin(ctx context.Context, doc *goquery.Document) (isLoginExist bool) {
+func (a analyser) CheckAnyLogin(ctx context.Context, doc *goquery.Document) (loginExist bool) {
 	log.WithContext(ctx).Info(analyserPrefix, "check any logins are there in the website")
 	var isExist bool
 	doc.Find("form").Each(func(i int, s *goquery.Selection) {
@@ -86,12 +86,12 @@ func (a analyser) CheckAnyLogin(ctx context.Context, doc *goquery.Document) (isL
 	return isExist
 }
 
-func (a analyser) GetTitle(ctx context.Context, doc *goquery.Document) string {
+func (a analyser) GetTitle(ctx context.Context, doc *goquery.Document) (title string) {
 	log.WithContext(ctx).Info(analyserPrefix, "start to fetching the title")
-	return doc.Find(title).Text()
+	return doc.Find(titleDoc).Text()
 }
 
-func (a analyser) CountHeading(ctx context.Context, doc *goquery.Document) map[string]int {
+func (a analyser) CountHeading(ctx context.Context, doc *goquery.Document) (headerCountMap map[string]int) {
 	log.WithContext(ctx).Info(analyserPrefix, "start to count the heading")
 	headingsMap := map[string]int{}
 	// created heading types to six
@@ -103,7 +103,7 @@ func (a analyser) CountHeading(ctx context.Context, doc *goquery.Document) map[s
 	return headingsMap
 }
 
-func (a analyser) CountLinks(ctx context.Context, doc *goquery.Document, baseURL string) domain.Link {
+func (a analyser) CountLinks(ctx context.Context, doc *goquery.Document, baseURL string) (linkInfo domain.Link) {
 	log.WithContext(ctx).Info(analyserPrefix, "start to counting the links")
 	var (
 		link          domain.Link

@@ -67,13 +67,13 @@ Duplicate links are ignored to prevent redundant processing.
 
 ## Challenges & Solutions
 
-High number of links increases API response latency - Implemented a worker pool to parallelize accessibility checks
-Some URLs take too long to respond - Applied TCP timeouts for outbound HTTP requests
-CORS errors when calling the backend from browser - Added CORS handling middleware to the Go server
-Inconsistent href formatting	- Normalized and joined relative paths with the base URL
+* High number of links increases API response latency - Implemented a worker pool to parallelize accessibility checks
+* Some URLs take too long to respond - Applied TCP timeouts for outbound HTTP requests
+* CORS errors when calling the backend from browser - Added CORS handling middleware to the Go server
+* Inconsistent href formatting	- Normalized and joined relative paths with the base URL
 
 ## Imporvements
 
-Introduce pagination for the result - when there are multiple inaccessibility links
-Add support for JavaScript-rendered content (Instagram, Facebook)
+* Introduce pagination for the result - when there are multiple inaccessibility links
+* Add support for JavaScript-rendered content (Instagram, Facebook)
 
